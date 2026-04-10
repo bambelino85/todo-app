@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #task-form {
+            margin-bottom: 20px;
+        }
+        #task-input {
+            padding: 10px;
+            width: 300px;
+        }
+        #add-task {
+            padding: 10px 15px;
+            background-color: #5cb85c;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        #tasks {
+            list-style-type: none;
+            padding: 0;
+        }
+        .task {
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            padding: 10px;
+            margin: 5px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+    <h1>To-Do List</h1>
+    <div id="task-form">
+        <input type="text" id="task-input" placeholder="Add a new task...">
+        <button id="add-task">Add Task</button>
+    </div>
+    <ul id="tasks"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const taskInput = document.getElementById('task-input');
+            const addTaskButton = document.getElementById('add-task');
+            const tasksList = document.getElementById('tasks');
+
+            function loadTasks() {
+                const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                tasks.forEach(task => addTaskToDOM(task));
+            }
+
+            function addTaskToDOM(task) {
+                const li = document.createElement('li');
+                li.textContent = task.text;
+                li.className = 'task';
+                if (task.completed) {
+                    li.classList.add('completed');
+                }
+
+                li.addEventListener('click', () => {
+                    task.completed = !task.completed;
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    li.classList.toggle('completed');
+                });
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const index = tasks.indexOf(task);
+                    tasks.splice(index, 1);
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    tasksList.removeChild(li);
+                });
+                li.appendChild(deleteButton);
+                tasksList.appendChild(li);
+            }
+
+            addTaskButton.addEventListener('click', () => {
+                const taskText = taskInput.value;
+                if (taskText) {
+                    const task = { text: taskText, completed: false };
+                    tasks.push(task);
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    addTaskToDOM(task);
+                    taskInput.value = '';
+                }
+            });
+
+            let tasks = [];
+            loadTasks();
+        });
+    </script>
+</body>
+</html>
