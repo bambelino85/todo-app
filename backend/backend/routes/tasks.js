@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
     try {
         const result = await pool.query(
             'SELECT * FROM tasks WHERE user_id = $1 ORDER BY sort_order DESC, created_at DESC',
-            [req.userId]
+            [req.user.id]
         );
         res.json(result.rows.map(rowToTask));
     } catch (err) {
@@ -53,7 +53,7 @@ router.post('/', async (req, res) => {
     try {
         const maxRes = await pool.query(
             'SELECT COALESCE(MAX(sort_order), 0) AS mx FROM tasks WHERE user_id = $1',
-            [req.userId]
+            [req.user.id]
         );
         const sortOrder = maxRes.rows[0].mx + 1;
 
@@ -64,7 +64,7 @@ router.post('/', async (req, res) => {
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
              RETURNING *`,
             [
-                req.userId, title.trim(), description, category, priority,
+                req.user.id, title.trim(), description, category, priority,
                 dueDate || null, dueTime || null,
                 recurring, JSON.stringify(tags), JSON.stringify(attachments), sortOrder
             ]
@@ -105,7 +105,7 @@ router.put('/:id', async (req, res) => {
                 completed !== undefined ? completed : false,
                 JSON.stringify(subtasks || []),
                 JSON.stringify(attachments || []),
-                id, req.userId
+                id, req.user.id
             ]
         );
         if (!result.rows.length) return res.status(404).json({ error: 'Task not found' });
@@ -128,7 +128,7 @@ router.patch('/reorder/bulk', async (req, res) => {
         for (let i = 0; i < orderedIds.length; i++) {
             await client.query(
                 'UPDATE tasks SET sort_order=$1 WHERE id=$2 AND user_id=$3',
-                [orderedIds.length - i, orderedIds[i], req.userId]
+                [orderedIds.length - i, orderedIds[i], req.user.id]
             );
         }
         await client.query('COMMIT');
@@ -175,7 +175,7 @@ router.patch('/:id', async (req, res) => {
 
     if (!setClauses.length) return res.status(400).json({ error: 'No valid fields to update' });
 
-    values.push(id, req.userId);
+    values.push(id, req.user.id);
     try {
         const result = await pool.query(
             `UPDATE tasks SET ${setClauses.join(', ')} WHERE id=$${idx} AND user_id=$${idx+1} RETURNING *`,
@@ -196,7 +196,7 @@ router.delete('/:id', async (req, res) => {
     try {
         const result = await pool.query(
             'DELETE FROM tasks WHERE id=$1 AND user_id=$2 RETURNING id',
-            [id, req.userId]
+            [id, req.user.id]
         );
         if (!result.rows.length) return res.status(404).json({ error: 'Task not found' });
         res.json({ deleted: id });
@@ -209,7 +209,7 @@ router.delete('/:id', async (req, res) => {
 /* DELETE /api/tasks (clear all for this user) */
 router.delete('/', async (req, res) => {
     try {
-        await pool.query('DELETE FROM tasks WHERE user_id=$1', [req.userId]);
+        await pool.query('DELETE FROM tasks WHERE user_id=$1', [req.user.id]);
         res.json({ deleted: 'all' });
     } catch (err) {
         console.error('DELETE /api/tasks', err);

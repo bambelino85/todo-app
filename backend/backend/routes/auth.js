@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
 /* GET /api/auth/me */
 router.get('/me', authMiddleware, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
+        const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
         if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
         res.json({ user: safeUser(result.rows[0]) });
     } catch (err) {
