@@ -1,0 +1,145 @@
+/* ─── Auth Screen ────────────────────────────────────────────────── */
+.auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    padding: 20px;
+}
+
+.auth-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.auth-logo {
+    font-size: 2.4em;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.auth-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.7em;
+    color: var(--accent);
+    text-align: center;
+    margin-bottom: 5px;
+    letter-spacing: -0.5px;
+}
+
+.auth-subtitle {
+    text-align: center;
+    color: var(--text3);
+    font-size: 0.85em;
+    margin-bottom: 24px;
+}
+
+.auth-tabs {
+    display: flex;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 24px;
+    border: 1.5px solid var(--border);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text2);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.87em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.auth-tab.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.auth-group {
+    margin-bottom: 14px;
+}
+
+.auth-group label {
+    display: block;
+    font-size: 0.74em;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.auth-group input {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9em;
+    font-family: 'Outfit', sans-serif;
+    background: var(--surface2);
+    color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+}
+
+.auth-error {
+    font-size: 0.8em;
+    color: var(--red);
+    min-height: 18px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+}
+
+.auth-btn:hover {
+    background: #5a4fd1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.3);
+}
+
+.auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ─── User greeting in header ────────────────────────────────────── */
+.user-greeting {
+    font-size: 0.82em;
+    color: var(--text2);
+    font-weight: 500;
+}

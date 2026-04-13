@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+        <div class="auth-logo">📋</div>
+        <h1 class="auth-title">Task Manager</h1>
+        <p class="auth-subtitle" id="authSubtitle">Sign in to your account</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tabLogin" onclick="authUI.showLogin()">Log In</button>
+            <button class="auth-tab" id="tabRegister" onclick="authUI.showRegister()">Sign Up</button>
+        </div>
+        <div id="loginForm">
+            <div class="auth-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')authUI.login()">
+            </div>
+            <div class="auth-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Your password" onkeydown="if(event.key==='Enter')authUI.login()">
+            </div>
+            <div class="auth-error" id="loginError"></div>
+            <button class="auth-btn" onclick="authUI.login()" id="loginBtn">Log In</button>
+        </div>
+        <div id="registerForm" style="display:none;">
+            <div class="auth-group">
+                <label>Name</label>
+                <input type="text" id="regName" placeholder="Your name" onkeydown="if(event.key==='Enter')authUI.register()">
+            </div>
+            <div class="auth-group">
+                <label>Email</label>
+                <input type="email" id="regEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')authUI.register()">
+            </div>
+            <div class="auth-group">
+                <label>Password <span style="font-weight:400;color:var(--text3)">(min 8 chars)</span></label>
+                <input type="password" id="regPassword" placeholder="Create a password" onkeydown="if(event.key==='Enter')authUI.register()">
+            </div>
+            <div class="auth-error" id="registerError"></div>
+            <button class="auth-btn" onclick="authUI.register()" id="registerBtn">Create Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appRoot" style="display:none;">
+    <div class="header">
+        <div>
+            <h1>📋 Task Manager</h1>
+            <div class="date-time" id="dateTime"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <span class="user-greeting" id="userGreeting"></span>
+            <button class="dark-toggle" id="darkToggle" onclick="app.toggleDark()">🌙 Dark Mode</button>
+            <button class="dark-toggle" style="color:var(--red);border-color:#ffd6d6;" onclick="authUI.logout()">Sign Out</button>
+        </div>
+    </div>
+
+    <div class="progress-wrap">
+        <div class="progress-meta">
+            <span class="progress-label">Overall Completion</span>
+            <span class="progress-pct" id="progressPct">0%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-title" id="formTitle">+ New Task</div>
+                <div class="form-group"><label>Title *</label><input type="text" id="fTitle" placeholder="What needs to be done?"></div>
+                <div class="form-group"><label>Description</label><textarea id="fDesc" placeholder="Optional details..."></textarea></div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="fCat">
+                        <option>Professional</option><option>Social</option><option>Family</option>
+                        <option>Personal Project</option><option>Health</option><option>Education</option>
+                        <option>Finance</option><option>Shopping</option><option>Travel</option><option>Entertainment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="fPri"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select>
+                </div>
+                <div class="form-group grid2">
+                    <div><label>Due Date</label><input type="date" id="fDate"></div>
+                    <div><label>Due Time</label><input type="time" id="fTime"></div>
+                </div>
+                <div class="form-group">
+                    <label>Recurring</label>
+                    <select id="fRecur">
+                        <option value="none">None</option><option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option><option value="biweekly">Every 2 Weeks</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tags</label>
+                    <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('tagInput').focus()">
+                        <input class="tag-text-input" id="tagInput" placeholder="Type + Enter to add...">
+                    </div>
+                    <div class="tag-suggestions" id="tagSugs"></div>
+                </div>
+                <div class="form-group">
+                    <label>Attach File</label>
+                    <input type="file" id="fFile" accept=".docx,.pdf,.jpeg,.jpg,.png,.txt,.json,.csv,.xlsx,.pptx,.doc,.xls,.gif,.bmp,.zip,.rar">
+                </div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="btn btn-primary" id="submitBtn" onclick="app.submit()">Add Task</button>
+                    <button class="btn btn-ghost" id="cancelBtn" style="display:none;width:auto;" onclick="app.cancelEdit()">Cancel</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Overview</div>
+                <div class="stats-grid">
+                    <div class="stat-item"><div class="stat-number" id="sTotal">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-item"><div class="stat-number" id="sActive">0</div><div class="stat-label">Active</div></div>
+                    <div class="stat-item"><div class="stat-number" id="sDone">0</div><div class="stat-label">Done</div></div>
+                    <div class="stat-item"><div class="stat-number" id="sCrit">0</div><div class="stat-label">Critical</div></div>
+                    <div class="stat-item"><div class="stat-number" id="sOver">0</div><div class="stat-label">Overdue</div></div>
+                    <div class="stat-item"><div class="stat-number" id="sRecur">0</div><div class="stat-label">Recurring</div></div>
+                </div>
+                <button class="btn btn-ghost" style="width:100%;margin-top:13px;color:var(--red);border-color:#ffd6d6;" onclick="app.clearAll()">🗑 Clear All Tasks</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by title, tag, category..." oninput="app.render()">
+                </div>
+            </div>
+            <div class="filter-pills">
+                <button class="fp active" onclick="app.setFilter('all',this)">All</button>
+                <button class="fp" onclick="app.setFilter('active',this)">Active</button>
+                <button class="fp" onclick="app.setFilter('completed',this)">Completed</button>
+                <button class="fp" onclick="app.setFilter('critical',this)">🔴 Critical</button>
+                <button class="fp" onclick="app.setFilter('overdue',this)">⏰ Overdue</button>
+                <button class="fp" onclick="app.setFilter('recurring',this)">🔄 Recurring</button>
+            </div>
+            <div class="tag-filters" id="tagFilters"></div>
+            <div id="taskList"></div>
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <div class="empty-icon">📭</div>
+                <h3>No tasks found</h3>
+                <p>Add a new task or adjust your filters.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-hd">
+            <h2>✏️ Edit Task</h2>
+            <button class="modal-x" onclick="app.closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="edit-grid">
+                <div class="fw form-group"><label>Title *</label><input type="text" id="eTitle"></div>
+                <div class="fw form-group"><label>Description</label><textarea id="eDesc"></textarea></div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="eCat">
+                        <option>Professional</option><option>Social</option><option>Family</option>
+                        <option>Personal Project</option><option>Health</option><option>Education</option>
+                        <option>Finance</option><option>Shopping</option><option>Travel</option><option>Entertainment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="ePri"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+                </div>
+                <div class="form-group"><label>Due Date</label><input type="date" id="eDate"></div>
+                <div class="form-group"><label>Due Time</label><input type="time" id="eTime"></div>
+                <div class="form-group">
+                    <label>Recurring</label>
+                    <select id="eRecur">
+                        <option value="none">None</option><option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option><option value="biweekly">Every 2 Weeks</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Tags (comma-separated)</label><input type="text" id="eTags" placeholder="work, urgent, design..."></div>
+            </div>
+        </div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="app.closeModal()">Cancel</button>
+            <button class="btn btn-primary" style="width:auto;" onclick="app.saveEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
