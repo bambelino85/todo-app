@@ -1,11 +1,9 @@
 /**
  * Task Manager — app.js
  * Persists via REST API with JWT authentication.
- * localStorage stores: tm_token, tm_user, tm_dark
  */
 
-const API      = 'https://task-manager-api-r427.onrender.com/api/tasks';
-const AUTH_API = 'https://task-manager-api-r427.onrender.com/api/auth';
+const API = 'https://task-manager-api-r427.onrender.com/api/tasks';
 
 class TaskApp {
     constructor() {
@@ -16,78 +14,77 @@ class TaskApp {
         this.formTags  = [];
         this.dragSrcId = null;
         this.darkMode  = JSON.parse(localStorage.getItem('tm_dark') || 'false');
-        this.token     = null;  // set by boot() after auth
-        // Apply dark mode immediately (no token needed)
-        if (this.darkMode) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('darkToggle').textContent = '☀️ Light Mode';
-        }
+        this.token     = null;
     }
 
     /* ─── BOOT — called by auth.js after successful login ───────── */
     async boot(token) {
         this.token = token;
-        setInterval(() => this.updateClock(), 1000);
-        this.updateClock();
 
+        // Apply saved dark mode
+        if (this.darkMode) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            const btn = document.getElementById('darkToggle');
+            if (btn) btn.textContent = '☀️ Light Mode';
+        }
+
+        // Start clock
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+
+        // Tag input listener
         const tagInput = document.getElementById('tagInput');
-        tagInput.addEventListener('keydown', e => {
-            if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
-                e.preventDefault();
-                this.addFormTag(tagInput.value.trim().replace(',', ''));
-                tagInput.value = '';
-            } else if (e.key === 'Backspace' && !tagInput.value && this.formTags.length) {
-                this.formTags.pop();
-                this.renderFormTags();
-            }
-        });
+        if (tagInput) {
+            tagInput.addEventListener('keydown', e => {
+                if ((e.key === 'Enter' || e.key === ',') && tagInput.value.trim()) {
+                    e.preventDefault();
+                    this.addFormTag(tagInput.value.trim().replace(',', ''));
+                    tagInput.value = '';
+                } else if (e.key === 'Backspace' && !tagInput.value && this.formTags.length) {
+                    this.formTags.pop();
+                    this.renderFormTags();
+                }
+            });
+        }
 
         await this.fetchTasks();
     }
 
     updateClock() {
-        document.getElementById('dateTime').textContent = new Date().toLocaleString('en-US', {
-            weekday: 'short', year: 'numeric', month: 'short',
-            day: 'numeric', hour: '2-digit', minute: '2-digit'
+        const el = document.getElementById('dateTime');
+        if (el) el.textContent = new Date().toLocaleString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long',
+            day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
     }
 
     toggleDark() {
         this.darkMode = !this.darkMode;
         document.documentElement.setAttribute('data-theme', this.darkMode ? 'dark' : 'light');
-        document.getElementById('darkToggle').textContent = this.darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+        const btn = document.getElementById('darkToggle');
+        if (btn) btn.textContent = this.darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
         localStorage.setItem('tm_dark', JSON.stringify(this.darkMode));
-    }
-
-    logout() {
-        localStorage.removeItem('tm_token');
-        localStorage.removeItem('tm_user');
-        window.location.href = 'auth.html';
     }
 
     /* ─── API HELPERS ───────────────────────────────────────────── */
     async request(url, options = {}) {
         try {
             const res = await fetch(url, {
+                ...options,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.token}`
                 },
-                ...options,
                 body: options.body ? JSON.stringify(options.body) : undefined,
             });
-
-            // Token expired or invalid — send to login
             if (res.status === 401) {
-                this.logout();
+                authUI.logout();
                 return null;
             }
-
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.error || `HTTP ${res.status}`);
             }
-
             return res.status === 204 ? null : res.json();
         } catch (err) {
             console.error('API error:', err);
@@ -110,8 +107,10 @@ class TaskApp {
     }
 
     async fetchTasks() {
-        this.tasks = await this.request(API) || [];
-        this.render();
+        try {
+            this.tasks = await this.request(API) || [];
+            this.render();
+        } catch(e) { this.render(); }
     }
 
     /* ─── TAG INPUT ─────────────────────────────────────────────── */
@@ -126,6 +125,7 @@ class TaskApp {
     renderFormTags() {
         const wrap  = document.getElementById('tagsWrap');
         const input = document.getElementById('tagInput');
+        if (!wrap || !input) return;
         wrap.querySelectorAll('.tag-chip').forEach(el => el.remove());
         this.formTags.forEach((tag, i) => {
             const chip = document.createElement('span');
@@ -141,9 +141,11 @@ class TaskApp {
     }
 
     renderTagSugs() {
+        const el = document.getElementById('tagSugs');
+        if (!el) return;
         const existing = [...new Set(this.tasks.flatMap(t => t.tags || []))]
             .filter(t => !this.formTags.includes(t)).slice(0, 8);
-        document.getElementById('tagSugs').innerHTML = existing.map(tag =>
+        el.innerHTML = existing.map(tag =>
             `<button class="tag-sug" onclick="app.addFormTag('${tag}')">${tag}</button>`
         ).join('');
     }
@@ -152,7 +154,6 @@ class TaskApp {
     async submit() {
         const title = document.getElementById('fTitle').value.trim();
         if (!title) { this.showError('Please enter a task title.'); return; }
-
         const payload = {
             title,
             description: document.getElementById('fDesc').value.trim(),
@@ -164,13 +165,11 @@ class TaskApp {
             tags:        [...this.formTags],
             attachments: []
         };
-
         const file = document.getElementById('fFile').files[0];
         const send = async (data) => {
             const created = await this.request(API, { method: 'POST', body: data });
             if (created) { this.tasks.unshift(created); this.resetForm(); this.render(); }
         };
-
         if (file) {
             const reader = new FileReader();
             reader.onload = async (e) => {
@@ -184,7 +183,10 @@ class TaskApp {
     }
 
     resetForm() {
-        ['fTitle','fDesc','fDate','fTime'].forEach(id => document.getElementById(id).value = '');
+        ['fTitle','fDesc','fDate','fTime'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
         document.getElementById('fCat').value   = 'Professional';
         document.getElementById('fPri').value   = 'Medium';
         document.getElementById('fRecur').value = 'none';
@@ -350,7 +352,7 @@ class TaskApp {
     }
 
     getFiltered() {
-        const q    = document.getElementById('searchInput').value.toLowerCase().trim();
+        const q    = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
         let   list = [...this.tasks];
         if (q) list = list.filter(t =>
             t.title.toLowerCase().includes(q) ||
@@ -374,20 +376,23 @@ class TaskApp {
         const all  = this.tasks;
         const done = all.filter(t => t.completed).length;
         const pct  = all.length ? Math.round((done/all.length)*100) : 0;
-        document.getElementById('sTotal').textContent  = all.length;
-        document.getElementById('sActive').textContent = all.filter(t=>!t.completed).length;
-        document.getElementById('sDone').textContent   = done;
-        document.getElementById('sCrit').textContent   = all.filter(t=>t.priority==='Critical').length;
-        document.getElementById('sOver').textContent   = all.filter(t=>this.isOverdue(t)).length;
-        document.getElementById('sRecur').textContent  = all.filter(t=>t.recurring&&t.recurring!=='none').length;
-        document.getElementById('progressPct').textContent  = `${pct}%`;
-        document.getElementById('progressFill').style.width = `${pct}%`;
+        const set  = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('sTotal',  all.length);
+        set('sActive', all.filter(t=>!t.completed).length);
+        set('sDone',   done);
+        set('sCrit',   all.filter(t=>t.priority==='Critical').length);
+        set('sOver',   all.filter(t=>this.isOverdue(t)).length);
+        set('sRecur',  all.filter(t=>t.recurring&&t.recurring!=='none').length);
+        set('progressPct', `${pct}%`);
+        const fill = document.getElementById('progressFill');
+        if (fill) fill.style.width = `${pct}%`;
     }
 
     renderTagFilters() {
         const allTags   = [...new Set(this.tasks.flatMap(t => t.tags||[]))];
         const container = document.getElementById('tagFilters');
-        if (!allTags.length) { container.innerHTML=''; return; }
+        if (!container) return;
+        if (!allTags.length) { container.innerHTML = ''; return; }
         container.innerHTML = `<span class="tag-filter-label">Tags:</span>` +
             allTags.map(tag =>
                 `<span class="tag-chip tag-filter-chip ${this.activeTag===tag?'active':''}"
@@ -398,8 +403,11 @@ class TaskApp {
     render() {
         const list     = document.getElementById('taskList');
         const filtered = this.getFiltered();
+        if (!list) return;
         list.innerHTML = '';
-        document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.style.display = filtered.length ? 'none' : 'block';
+
         const recurLabel = { daily:'Daily', weekly:'Weekly', biweekly:'Biweekly', monthly:'Monthly' };
 
         filtered.forEach(task => {
@@ -496,7 +504,6 @@ class TaskApp {
         this.renderTagSugs();
     }
 
-    /* ─── CLEAR ALL ─────────────────────────────────────────────── */
     async clearAll() {
         if (!confirm('Delete ALL tasks? This cannot be undone.')) return;
         await this.request(API, { method: 'DELETE' });
@@ -504,7 +511,6 @@ class TaskApp {
         this.render();
     }
 
-    /* ─── UTILS ─────────────────────────────────────────────────── */
     esc(text) {
         const d = document.createElement('div');
         d.textContent = text;
@@ -512,7 +518,12 @@ class TaskApp {
     }
 }
 
+/* ─── Bootstrap ─────────────────────────────────────────────────── */
 const app = new TaskApp();
-document.getElementById('editModal').addEventListener('click', e => {
-    if (e.target.id === 'editModal') app.closeModal();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.addEventListener('click', e => {
+        if (e.target.id === 'editModal') app.closeModal();
+    });
 });
