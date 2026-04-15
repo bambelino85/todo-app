@@ -6,6 +6,13 @@
     <title>Task Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Task Manager">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/auth.css">
 </head>
@@ -120,15 +127,29 @@
                     <button class="btn btn-ghost" id="cancelBtn" style="display:none;width:auto;" onclick="app.cancelEdit()">Cancel</button>
                 </div>
             </div>
+
+            <!-- Overview Stats — each item is clickable -->
             <div class="card">
                 <div class="card-title">Overview</div>
                 <div class="stats-grid">
-                    <div class="stat-item"><div class="stat-number" id="sTotal">0</div><div class="stat-label">Total</div></div>
-                    <div class="stat-item"><div class="stat-number" id="sActive">0</div><div class="stat-label">Active</div></div>
-                    <div class="stat-item"><div class="stat-number" id="sDone">0</div><div class="stat-label">Done</div></div>
-                    <div class="stat-item"><div class="stat-number" id="sCrit">0</div><div class="stat-label">Critical</div></div>
-                    <div class="stat-item"><div class="stat-number" id="sOver">0</div><div class="stat-label">Overdue</div></div>
-                    <div class="stat-item"><div class="stat-number" id="sRecur">0</div><div class="stat-label">Recurring</div></div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('all')" title="All tasks">
+                        <div class="stat-number" id="sTotal">0</div><div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('active')" title="Active tasks">
+                        <div class="stat-number" id="sActive">0</div><div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('completed')" title="Completed tasks">
+                        <div class="stat-number" id="sDone">0</div><div class="stat-label">Done</div>
+                    </div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('critical')" title="Critical tasks">
+                        <div class="stat-number" id="sCrit">0</div><div class="stat-label">Critical</div>
+                    </div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('overdue')" title="Overdue tasks">
+                        <div class="stat-number" id="sOver">0</div><div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-item stat-clickable" onclick="app.setStatFilter('recurring')" title="Recurring tasks">
+                        <div class="stat-number" id="sRecur">0</div><div class="stat-label">Recurring</div>
+                    </div>
                 </div>
                 <button class="btn btn-ghost" style="width:100%;margin-top:13px;color:var(--red);border-color:#ffd6d6;" onclick="app.clearAll()">🗑 Clear All Tasks</button>
             </div>
@@ -141,13 +162,13 @@
                     <input type="text" id="searchInput" placeholder="Search by title, tag, category..." oninput="app.render()">
                 </div>
             </div>
-            <div class="filter-pills">
-                <button class="fp active" onclick="app.setFilter('all',this)">All</button>
-                <button class="fp" onclick="app.setFilter('active',this)">Active</button>
-                <button class="fp" onclick="app.setFilter('completed',this)">Completed</button>
-                <button class="fp" onclick="app.setFilter('critical',this)">🔴 Critical</button>
-                <button class="fp" onclick="app.setFilter('overdue',this)">⏰ Overdue</button>
-                <button class="fp" onclick="app.setFilter('recurring',this)">🔄 Recurring</button>
+            <div class="filter-pills" id="filterPills">
+                <button class="fp active" data-filter="all" onclick="app.setFilter('all',this)">All</button>
+                <button class="fp" data-filter="active" onclick="app.setFilter('active',this)">Active</button>
+                <button class="fp" data-filter="completed" onclick="app.setFilter('completed',this)">Completed</button>
+                <button class="fp" data-filter="critical" onclick="app.setFilter('critical',this)">🔴 Critical</button>
+                <button class="fp" data-filter="overdue" onclick="app.setFilter('overdue',this)">⏰ Overdue</button>
+                <button class="fp" data-filter="recurring" onclick="app.setFilter('recurring',this)">🔄 Recurring</button>
             </div>
             <div class="tag-filters" id="tagFilters"></div>
             <div id="taskList"></div>
@@ -203,8 +224,32 @@
     </div>
 </div>
 
+<!-- TASK DETAILS MODAL -->
+<div class="modal-overlay" id="detailsModal">
+    <div class="modal">
+        <div class="modal-hd">
+            <h2>📋 Task Details</h2>
+            <button class="modal-x" onclick="app.closeDetailsModal()">✕</button>
+        </div>
+        <div class="modal-body" id="detailsBody"></div>
+        <div class="modal-ft">
+            <button class="btn btn-ghost" onclick="app.closeDetailsModal()">Close</button>
+            <button class="btn btn-primary" style="width:auto;background:var(--red);" onclick="app.downloadTaskPDF()">📥 Download PDF</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('SW registered:', reg.scope))
+            .catch(err => console.log('SW registration failed:', err));
+    });
+}
+</script>
 </body>
 </html>
