@@ -7,32 +7,27 @@ const API = 'https://task-manager-api-r427.onrender.com/api/tasks';
 
 class TaskApp {
     constructor() {
-        this.tasks     = [];
-        this.filter    = 'all';
-        this.activeTag = null;
-        this.editId    = null;
-        this.formTags  = [];
-        this.dragSrcId = null;
-        this.darkMode  = JSON.parse(localStorage.getItem('tm_dark') || 'false');
-        this.token     = null;
+        this.tasks        = [];
+        this.filter       = 'all';
+        this.activeTag    = null;
+        this.editId       = null;
+        this.detailTaskId = null;
+        this.formTags     = [];
+        this.dragSrcId    = null;
+        this.darkMode     = JSON.parse(localStorage.getItem('tm_dark') || 'false');
+        this.token        = null;
     }
 
-    /* ─── BOOT — called by auth.js after successful login ───────── */
+    /* ─── BOOT ──────────────────────────────────────────────────── */
     async boot(token) {
         this.token = token;
-
-        // Apply saved dark mode
         if (this.darkMode) {
             document.documentElement.setAttribute('data-theme', 'dark');
             const btn = document.getElementById('darkToggle');
             if (btn) btn.textContent = '☀️ Light Mode';
         }
-
-        // Start clock
         this.updateClock();
         setInterval(() => this.updateClock(), 1000);
-
-        // Tag input listener
         const tagInput = document.getElementById('tagInput');
         if (tagInput) {
             tagInput.addEventListener('keydown', e => {
@@ -46,7 +41,6 @@ class TaskApp {
                 }
             });
         }
-
         await this.fetchTasks();
     }
 
@@ -71,16 +65,10 @@ class TaskApp {
         try {
             const res = await fetch(url, {
                 ...options,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.token}`
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
                 body: options.body ? JSON.stringify(options.body) : undefined,
             });
-            if (res.status === 401) {
-                authUI.logout();
-                return null;
-            }
+            if (res.status === 401) { authUI.logout(); return null; }
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.error || `HTTP ${res.status}`);
@@ -96,21 +84,14 @@ class TaskApp {
     showError(msg) {
         const toast = document.createElement('div');
         toast.textContent = `⚠️ ${msg}`;
-        toast.style.cssText = `
-            position:fixed;bottom:20px;right:20px;z-index:9999;
-            background:#e05454;color:#fff;padding:10px 18px;
-            border-radius:10px;font-family:'Outfit',sans-serif;
-            font-size:0.87em;font-weight:600;
-            box-shadow:0 4px 16px rgba(0,0,0,0.25);`;
+        toast.style.cssText = `position:fixed;bottom:20px;right:20px;z-index:9999;background:#e05454;color:#fff;padding:10px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.87em;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);`;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     }
 
     async fetchTasks() {
-        try {
-            this.tasks = await this.request(API) || [];
-            this.render();
-        } catch(e) { this.render(); }
+        try { this.tasks = await this.request(API) || []; this.render(); }
+        catch(e) { this.render(); }
     }
 
     /* ─── TAG INPUT ─────────────────────────────────────────────── */
@@ -123,7 +104,7 @@ class TaskApp {
     }
 
     renderFormTags() {
-        const wrap  = document.getElementById('tagsWrap');
+        const wrap = document.getElementById('tagsWrap');
         const input = document.getElementById('tagInput');
         if (!wrap || !input) return;
         wrap.querySelectorAll('.tag-chip').forEach(el => el.remove());
@@ -135,10 +116,7 @@ class TaskApp {
         });
     }
 
-    removeFormTag(i) {
-        this.formTags.splice(i, 1);
-        this.renderFormTags();
-    }
+    removeFormTag(i) { this.formTags.splice(i, 1); this.renderFormTags(); }
 
     renderTagSugs() {
         const el = document.getElementById('tagSugs');
@@ -155,15 +133,13 @@ class TaskApp {
         const title = document.getElementById('fTitle').value.trim();
         if (!title) { this.showError('Please enter a task title.'); return; }
         const payload = {
-            title,
-            description: document.getElementById('fDesc').value.trim(),
-            category:    document.getElementById('fCat').value,
-            priority:    document.getElementById('fPri').value,
-            dueDate:     document.getElementById('fDate').value,
-            dueTime:     document.getElementById('fTime').value,
-            recurring:   document.getElementById('fRecur').value,
-            tags:        [...this.formTags],
-            attachments: []
+            title, description: document.getElementById('fDesc').value.trim(),
+            category: document.getElementById('fCat').value,
+            priority: document.getElementById('fPri').value,
+            dueDate:  document.getElementById('fDate').value,
+            dueTime:  document.getElementById('fTime').value,
+            recurring: document.getElementById('fRecur').value,
+            tags: [...this.formTags], attachments: []
         };
         const file = document.getElementById('fFile').files[0];
         const send = async (data) => {
@@ -177,16 +153,11 @@ class TaskApp {
                 await send(payload);
             };
             reader.readAsDataURL(file);
-        } else {
-            await send(payload);
-        }
+        } else { await send(payload); }
     }
 
     resetForm() {
-        ['fTitle','fDesc','fDate','fTime'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
+        ['fTitle','fDesc','fDate','fTime'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         document.getElementById('fCat').value   = 'Professional';
         document.getElementById('fPri').value   = 'Medium';
         document.getElementById('fRecur').value = 'none';
@@ -215,13 +186,9 @@ class TaskApp {
     async toggleTask(id) {
         const task = this.tasks.find(t => t.id === id);
         if (!task) return;
-        const updated = await this.request(`${API}/${id}`, {
-            method: 'PATCH', body: { completed: !task.completed }
-        });
+        const updated = await this.request(`${API}/${id}`, { method: 'PATCH', body: { completed: !task.completed } });
         if (!updated) return;
-        if (!task.completed && updated.completed && updated.recurring !== 'none') {
-            await this.spawnRecurring(updated);
-        }
+        if (!task.completed && updated.completed && updated.recurring !== 'none') await this.spawnRecurring(updated);
         Object.assign(task, updated);
         this.render();
     }
@@ -231,14 +198,91 @@ class TaskApp {
         const next = new Date(task.dueDate + 'T00:00:00');
         const daysMap = { daily:1, weekly:7, biweekly:14, monthly:30 };
         next.setDate(next.getDate() + (daysMap[task.recurring] || 7));
-        const payload = {
-            title: task.title, description: task.description, category: task.category,
-            priority: task.priority, dueDate: next.toISOString().split('T')[0],
-            dueTime: task.dueTime, recurring: task.recurring,
-            tags: task.tags, attachments: task.attachments,
-        };
+        const payload = { title: task.title, description: task.description, category: task.category,
+            priority: task.priority, dueDate: next.toISOString().split('T')[0], dueTime: task.dueTime,
+            recurring: task.recurring, tags: task.tags, attachments: task.attachments };
         const created = await this.request(API, { method: 'POST', body: payload });
         if (created) { created._spawned = true; this.tasks.unshift(created); }
+    }
+
+    /* ─── TASK DETAILS MODAL ────────────────────────────────────── */
+    showDetails(id) {
+        const task = this.tasks.find(t => t.id === id);
+        if (!task) return;
+        this.detailTaskId = id;
+
+        const recurLabel = { none:'None', daily:'Daily', weekly:'Weekly', biweekly:'Every 2 Weeks', monthly:'Monthly' };
+        const dueStr = task.dueDate
+            ? new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+            : 'No due date';
+        const dueTime = task.dueTime ? ` at ${task.dueTime}` : '';
+        const subs    = task.subtasks || [];
+        const subDone = subs.filter(s => s.done).length;
+        const tags    = (task.tags || []).map(t => `<span class="tag-chip" style="font-size:0.75em;">${t}</span>`).join(' ') || 'None';
+        const status  = task.completed
+            ? `<span class="badge b-low">✅ Completed</span>`
+            : `<span class="badge b-medium">✏️ Active</span>`;
+        const priority = `<span class="badge b-${task.priority.toLowerCase()}">${task.priority}</span>`;
+
+        document.getElementById('detailsBody').innerHTML = `
+            <div class="detail-row"><div class="detail-key">Title</div><div class="detail-val"><strong>${this.esc(task.title)}</strong></div></div>
+            <div class="detail-row"><div class="detail-key">Description</div><div class="detail-val">${this.esc(task.description || 'No description provided')}</div></div>
+            <div class="detail-row"><div class="detail-key">Category</div><div class="detail-val"><span class="badge b-cat">${task.category}</span></div></div>
+            <div class="detail-row"><div class="detail-key">Priority</div><div class="detail-val">${priority}</div></div>
+            <div class="detail-row"><div class="detail-key">Status</div><div class="detail-val">${status}</div></div>
+            <div class="detail-row"><div class="detail-key">Due Date</div><div class="detail-val">${dueStr}${dueTime}</div></div>
+            <div class="detail-row"><div class="detail-key">Recurring</div><div class="detail-val">${recurLabel[task.recurring] || 'None'}</div></div>
+            <div class="detail-row"><div class="detail-key">Tags</div><div class="detail-val">${tags}</div></div>
+            <div class="detail-row"><div class="detail-key">Subtasks</div><div class="detail-val">${subs.length ? `${subDone} of ${subs.length} completed` : 'None'}</div></div>
+            ${subs.length ? `<div class="detail-row"><div class="detail-key"></div><div class="detail-val">${subs.map(s => `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="font-size:1em;">${s.done ? '✅' : '⬜'}</span><span style="${s.done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${this.esc(s.text)}</span></div>`).join('')}</div></div>` : ''}
+            <div class="detail-row"><div class="detail-key">Attachments</div><div class="detail-val">${task.attachments && task.attachments.length ? task.attachments.map(a => `📎 ${this.esc(a.name)}`).join('<br>') : 'None'}</div></div>
+            <div class="detail-row"><div class="detail-key">Created</div><div class="detail-val">${task.createdAt || 'Unknown'}</div></div>
+        `;
+
+        document.getElementById('detailsModal').classList.add('open');
+    }
+
+    closeDetailsModal() {
+        document.getElementById('detailsModal').classList.remove('open');
+        this.detailTaskId = null;
+    }
+
+    downloadTaskPDF() {
+        const task = this.tasks.find(t => t.id === this.detailTaskId);
+        if (!task) return;
+        const dueStr = task.dueDate
+            ? new Date(task.dueDate + 'T00:00:00').toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+            : 'No due date';
+        const subs = task.subtasks || [];
+
+        const el = document.createElement('div');
+        el.style.padding = '20px';
+        el.innerHTML = `
+            <div style="font-family:Arial,sans-serif;color:#333;max-width:600px;">
+                <h2 style="color:#6c5ce7;border-bottom:3px solid #6c5ce7;padding-bottom:10px;margin-bottom:20px;">📋 Task Details</h2>
+                <table style="width:100%;border-collapse:collapse;">
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;width:140px;vertical-align:top;">TITLE</td><td style="padding:8px 0;font-size:14px;">${this.esc(task.title)}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">DESCRIPTION</td><td style="padding:8px 0;font-size:14px;">${this.esc(task.description || 'No description')}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">CATEGORY</td><td style="padding:8px 0;font-size:14px;">${this.esc(task.category)}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">PRIORITY</td><td style="padding:8px 0;font-size:14px;font-weight:bold;">${this.esc(task.priority)}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">STATUS</td><td style="padding:8px 0;font-size:14px;">${task.completed ? '✅ Completed' : '✏️ Active'}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">DUE DATE</td><td style="padding:8px 0;font-size:14px;">${dueStr}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">RECURRING</td><td style="padding:8px 0;font-size:14px;">${task.recurring || 'None'}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">TAGS</td><td style="padding:8px 0;font-size:14px;">${(task.tags || []).join(', ') || 'None'}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">SUBTASKS</td><td style="padding:8px 0;font-size:14px;">${subs.length ? subs.map(s => `${s.done ? '✅' : '⬜'} ${this.esc(s.text)}`).join('<br>') : 'None'}</td></tr>
+                    <tr><td style="padding:8px 0;font-weight:700;font-size:13px;color:#888;vertical-align:top;">CREATED</td><td style="padding:8px 0;font-size:14px;">${task.createdAt || 'Unknown'}</td></tr>
+                </table>
+                <hr style="margin-top:30px;border:none;border-top:2px solid #e0e0e0;">
+                <p style="font-size:11px;color:#999;margin-top:12px;">Generated on ${new Date().toLocaleString()}</p>
+            </div>`;
+
+        html2pdf().set({
+            margin: 12,
+            filename: `task-${task.id}-${task.title.replace(/\s+/g,'-').toLowerCase()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        }).from(el).save();
     }
 
     /* ─── EDIT MODAL ────────────────────────────────────────────── */
@@ -319,13 +363,12 @@ class TaskApp {
         const panel = document.getElementById(`sp-${taskId}`);
         if (!panel) return;
         const showing = panel.style.display === 'block';
-        panel.style.display   = showing ? 'none' : 'block';
+        panel.style.display = showing ? 'none' : 'block';
         btn.style.background  = showing ? '' : 'var(--accent)';
         btn.style.color       = showing ? '' : '#fff';
         btn.style.borderColor = showing ? '' : 'var(--accent)';
     }
 
-    /* ─── DRAG AND DROP ─────────────────────────────────────────── */
     async commitReorder() {
         const orderedIds = this.tasks.map(t => t.id);
         await this.request(`${API}/reorder/bulk`, { method: 'PATCH', body: { orderedIds } });
@@ -336,7 +379,24 @@ class TaskApp {
         this.filter    = f;
         this.activeTag = null;
         document.querySelectorAll('.fp').forEach(p => p.classList.remove('active'));
-        el.classList.add('active');
+        if (el) el.classList.add('active');
+        // Sync stat items highlight
+        document.querySelectorAll('.stat-clickable').forEach(s => s.classList.remove('active-stat'));
+        this.render();
+    }
+
+    setStatFilter(f) {
+        this.filter    = f;
+        this.activeTag = null;
+        // Highlight the clicked stat
+        document.querySelectorAll('.stat-clickable').forEach(s => s.classList.remove('active-stat'));
+        const statMap = { all: 0, active: 1, completed: 2, critical: 3, overdue: 4, recurring: 5 };
+        const items = document.querySelectorAll('.stat-clickable');
+        if (items[statMap[f]] !== undefined) items[statMap[f]].classList.add('active-stat');
+        // Sync filter pills
+        document.querySelectorAll('.fp').forEach(p => p.classList.remove('active'));
+        const pill = document.querySelector(`.fp[data-filter="${f}"]`);
+        if (pill) pill.classList.add('active');
         this.render();
     }
 
@@ -423,6 +483,7 @@ class TaskApp {
             card.className = `task-card priority-${task.priority.toLowerCase()} ${task.completed?'completed':''} ${task._spawned?'spawned':''}`;
             card.dataset.id = task.id;
             card.draggable  = true;
+            card.style.cursor = 'pointer';
             if (task._spawned) delete task._spawned;
 
             card.innerHTML = `
@@ -443,6 +504,7 @@ class TaskApp {
                             ${dueStr?`<span>📅 ${dueStr}</span>`:''}
                             ${task.attachments&&task.attachments.length?`<span>📎 ${task.attachments.length} file(s)</span>`:''}
                             <span>📁 ${task.category}</span>
+                            <span style="color:var(--accent);font-size:0.72em;">Click to view details</span>
                         </div>
                         ${subs.length?`
                             <div class="sub-progress">
@@ -470,6 +532,10 @@ class TaskApp {
                         </div>`).join('')}
                 </div>`;
 
+            // Click card to show details
+            card.addEventListener('click', () => this.showDetails(task.id));
+
+            // Drag and Drop
             card.addEventListener('dragstart', e => {
                 this.dragSrcId = task.id;
                 requestAnimationFrame(() => card.classList.add('dragging'));
@@ -522,8 +588,8 @@ class TaskApp {
 const app = new TaskApp();
 
 document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('editModal');
-    if (modal) modal.addEventListener('click', e => {
-        if (e.target.id === 'editModal') app.closeModal();
-    });
+    const editModal    = document.getElementById('editModal');
+    const detailsModal = document.getElementById('detailsModal');
+    if (editModal)    editModal.addEventListener('click',    e => { if (e.target.id === 'editModal')    app.closeModal(); });
+    if (detailsModal) detailsModal.addEventListener('click', e => { if (e.target.id === 'detailsModal') app.closeDetailsModal(); });
 });
